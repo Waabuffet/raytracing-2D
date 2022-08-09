@@ -1,6 +1,7 @@
 class Lamp{
     constructor(light_radius){
         this.pos = createVector(width/2, height/2);
+        this.size = 4;
         this.rays = [];
         this.raysToShow = [];
         this.light_radius = light_radius;
@@ -17,7 +18,7 @@ class Lamp{
 
     show(){
         fill(255);
-        ellipse(this.pos.x, this.pos.y, 4);
+        ellipse(this.pos.x, this.pos.y, this.size);
         if(this.raysToShow.length > 0){
             for(let ray of this.raysToShow){
                 ray.show();
@@ -89,8 +90,9 @@ class Lamp{
         }
     }
 
-    look(walls){
+    look(walls, treats){
         for(let ray of this.rays){
+            ray.reset();
             let closestPt = null;
             let record = Infinity;
             for(let wall of walls){
@@ -108,6 +110,32 @@ class Lamp{
 
             if(closestPt){
                 ray.setWall(closestPt);
+            }
+
+            let closesPtTreat = null;
+            let recordTreat = Infinity;
+            for(let treat of treats){
+                let pts = ray.castTreat(treat);
+                if(pts.length > 0){
+                    let closestTreat = null;
+                    if(pts.length > 1){ // 2
+                        let d1 = p5.Vector.dist(this.pos, pts[0]);
+                        let d2 = p5.Vector.dist(this.pos, pts[1]);
+                        closestTreat = (d1 < d2)? pts[0] : pts[1];
+                    }else{
+                        closestTreat = pts[0];
+                    }
+
+                    let d = p5.Vector.dist(this.pos, closestTreat);
+                    if(d < recordTreat){
+                        recordTreat = d;
+                        closesPtTreat = closestTreat;
+                    }
+                }
+            }
+
+            if(closesPtTreat){
+                ray.setTreat(closesPtTreat);
             }
         }
     }

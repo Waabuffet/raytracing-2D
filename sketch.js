@@ -1,11 +1,17 @@
 let followMouse = false; // takes priority, lamp will simply follow the mouse
 let keyControls = true; // if both followMouse and keyControls are false, the lamp will move randomly with perlin noise
 let manualWallsMode = false;
+let showWalls = false; // set to false for great experience
+let gameMode = true;
+let showTreats = false;
 
 let lamp_speed = 5; // only when keyControls is true and followMouse is false
-let whichWalls = 0; // 0 is for random. you can add you own walls to the generateWalls function
+let whichWalls = 0; // 0 is for random. you can add you own walls to the generateWalls() function
 let walls_count = 5; // only if manualWallsMode is false, walls will be randomly generated
+let treats_count = 5;
+let whichTreats = 0;
 let light_radius = 45; // should be between 1 and 90
+let full_light_allowed = 5;
 
 let canvas_width = 1500;
 let canvas_height = 800;
@@ -20,6 +26,11 @@ let xoff = 0;
 let yoff = 5000;
 let wallStartPt = null;
 let mousePt = null;
+let manualTreatsMode = false;
+let treats = []; // only when gameMode is true
+let full_lights_used = 0;
+let total_treats_collected = 0;
+let treats_left = 0;
 
 function setup() {
   createCanvas(canvas_width, canvas_height);
@@ -28,6 +39,10 @@ function setup() {
 
   if(!manualWallsMode){
     generateWalls(whichWalls);
+  }
+
+  if(gameMode && !manualWallsMode){
+    generateTreats(whichTreats);
   }
 
   // edges
@@ -45,16 +60,18 @@ function printWalls(){
   }
   console.log(m);
 }
+function printTreats(){
+  let m = '';
+  for(let treat of treats){
+    m += 'treats.push(new Treat(' + treat.pos.x + ',' + treat.pos.y + '));\n';
+  }
+  console.log(m);
+}
 
 function draw() {
   background(0);
 
   if(manualWallsMode){
-    // if(wallStartPt){
-    //   stroke(255);
-    //   ellipse(wallStartPt.x, wallStartPt.y, 2);
-    // }
-
     if(wallStartPt && mousePt){
       stroke(255);
       line(wallStartPt.x, wallStartPt.y, mousePt.x, mousePt.y);
@@ -63,12 +80,16 @@ function draw() {
     for(let wall of walls){
       wall.show();
     }
+    for(let treat of treats){
+      treat.show();
+    }
   }else{
-
     lamp.show();
-    lamp.look(walls);
+    lamp.look(walls, treats);
     if(followMouse){
-      lamp.follow(mouseX, mouseY);
+      if(mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height){
+        lamp.follow(mouseX, mouseY);
+      }
     }else if(keyControls){
       keyboardControls();
     }else{
@@ -76,18 +97,59 @@ function draw() {
       xoff += 0.01;
       yoff += 0.01;
     }
+
+    if(showWalls){
+      for(let wall of walls){
+        wall.show();
+      }
+    }
+    if(showTreats){
+      for(let treat of treats){
+        treat.show();
+      }
+    }
+    var t = collectedTreat();
+    if(t >= 0){
+      treats.splice(t, 1);
+      total_treats_collected++;
+      console.log('collected treats: ' + total_treats_collected);
+      treats_left = treats.length;
+      console.log('treats left: ' + treats_left);
+      if(treats.length == 0){
+        console.log('game over');
+        resetGame();
+      }
+    }
   }
 
 }
 
+function collectedTreat() {
+
+  for(let i = 0; i < treats.length; i++){
+    var a = lamp.size + treats[i].r;
+    var x = lamp.pos.x - treats[i].pos.x;
+    var y = lamp.pos.y - treats[i].pos.y;
+
+    if (a > Math.sqrt((x * x) + (y * y))) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 function mouseClicked(){
   if(manualWallsMode){
-    if(wallStartPt){
-      walls.push(new Wall(wallStartPt.x, wallStartPt.y, mouseX, mouseY));
-      wallStartPt = null;
-      mousePt = null;
+    if(manualTreatsMode){
+      treats.push(new Treat(mouseX, mouseY));
     }else{
-      wallStartPt = createVector(mouseX, mouseY);
+      if(wallStartPt){
+        walls.push(new Wall(wallStartPt.x, wallStartPt.y, mouseX, mouseY));
+        wallStartPt = null;
+        mousePt = null;
+      }else{
+        wallStartPt = createVector(mouseX, mouseY);
+      }
     }
   }
 }
@@ -120,17 +182,62 @@ function keyboardControls(){
 
 function keyPressed(){
   if(keyCode == 32){ // space bar
-    if(manualWallsMode){
+    if(manualWallsMode && !manualTreatsMode){
       printWalls();
+      manualTreatsMode = true;
+      wallStartPt = null;
+      mousePt = null;
+    }else if(manualWallsMode && manualTreatsMode){
+      printTreats();
+      manualTreatsMode = false;
       manualWallsMode = false;
     }else{
-      lamp.showAll();
+      if(full_lights_used < full_light_allowed){
+        lamp.showAll();
+        full_lights_used++;
+      }
     }
   }
 }
 
-function generateWalls(which){
-  switch(which){
+function resetGame(){
+  lamp = new Lamp(light_radius);
+  walls = [];
+  treats = [];
+
+  if(!manualWallsMode){
+    generateWalls(whichWalls);
+  }
+
+  if(gameMode && !manualWallsMode){
+    generateTreats(whichTreats);
+  }
+
+  // edges
+  walls.push(new Wall(0, 0, width, 0));
+  walls.push(new Wall(width, 0, width, height));
+  walls.push(new Wall(width, height, 0, height));
+  walls.push(new Wall(0, height, 0, 0));
+  full_lights_used = 0;
+}
+
+function generateTreats(where){
+  switch(where){
+    case 0:
+      for(let i = 0; i < treats_count; i++){
+        let x = random(width);
+        let y = random(height);
+        treats.push(new Treat(x, y));
+      }
+      break;
+    case 1:
+      // put your treats here
+  }
+  treats_left = treats.length;
+}
+
+function generateWalls(where){
+  switch(where){
     case 0:
       for(let i = 0; i < walls_count; i++){
         let x1 = random(width);
