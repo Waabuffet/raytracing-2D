@@ -87,44 +87,6 @@ class Ray{
         }
     }
 
-    castTreat2(treat){
-        let x1 = this.pos.x;
-        let y1 = this.pos.y;
-        let x2 = this.pos.x + this.dir.x;
-        let y2 = this.pos.y + this.dir.y;
-
-        var a, b, c, d, u1, u2, ret, retP1, retP2, v1, v2;
-        v1 = {};
-        v2 = {};
-        v1.x = x2 - x1;
-        v1.y = y2 - y1;
-        v2.x = x1 - treat.pos.x;
-        v2.y = y1 - treat.pos.y;
-        b = (v1.x * v2.x + v1.y * v2.y);
-        c = 2 * (v1.x * v1.x + v1.y * v1.y);
-        b *= -2;
-        d = Math.sqrt(b * b - 2 * c * (v2.x * v2.x + v2.y * v2.y - treat.r * treat.r));
-        if(isNaN(d)){ // no intercept
-            return [];
-        }
-        u1 = (b - d) / c;  // these represent the unit distance of point one and two on the line
-        u2 = (b + d) / c;    
-        retP1 = {};   // return points
-        retP2 = {}  
-        ret = []; // return array
-        if(u1 <= 1 && u1 >= 0){  // add point if on the line segment
-            retP1.x = x1 + v1.x * u1;
-            retP1.y = y1 + v1.y * u1;
-            ret[0] = retP1;
-        }
-        if(u2 <= 1 && u2 >= 0){  // second add point if on the line segment
-            retP2.x = x1 + v1.x * u2;
-            retP2.y = y1 + v1.y * u2;
-            ret[ret.length] = retP2;
-        }       
-        return ret;
-    }
-
     getLineEquation(){
         let x1 = this.pos.x;
         let y1 = this.pos.y;

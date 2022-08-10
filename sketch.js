@@ -201,7 +201,6 @@ function keyPressed(){
 }
 
 function resetGame(){
-  lamp = new Lamp(light_radius);
   walls = [];
   treats = [];
 
